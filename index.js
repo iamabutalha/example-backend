@@ -23,6 +23,8 @@ let notes = [
   },
 ];
 
+app.use(express.static("dist"));
+
 const unkownPoint = (request, response) => {
   response.status(404).send({ error: "unkown point" });
 };
