@@ -1,6 +1,23 @@
+import dotenv from "dotenv";
+import mongoose, { Mongoose } from "mongoose";
+import Note from "./models/notes.js";
 import express, { request, response } from "express";
 import cors from "cors";
 const app = express();
+dotenv.config();
+
+const url = process.env.MONGODB_URI;
+
+mongoose
+  .connect(url)
+  .then(() => {
+    console.log("connceted to mongoDb");
+  })
+  .catch((error) => {
+    console.log(error);
+  });
+
+mongoose.set("strictQuery", false);
 
 app.use(cors());
 // const http = require("http");
@@ -55,15 +72,14 @@ app.post("/api/notes", (request, response) => {
     });
   }
 
-  const note = {
+  const note = new Note({
     content: body.content,
     important: Boolean(body.important) || false,
-    id: generateId(),
-  };
+  });
 
-  notes = notes.concat(note);
-  console.log(note);
-  response.json(note);
+  note.save().then((savedNotes) => {
+    response.json(savedNotes);
+  });
 });
 
 app.get("/", (request, response) => {
@@ -71,20 +87,15 @@ app.get("/", (request, response) => {
 });
 
 app.get("/api/notes", (request, response) => {
-  response.json(notes);
+  Note.find({}).then((notes) => {
+    response.json(notes);
+  });
 });
 
 app.get("/api/notes/:id", (request, response) => {
-  const id = request.params.id;
-  const note = notes.find((note) => id === note.id);
-  //   if not avialbale show it
-  if (note) {
+  Note.findById(request.params.id).then((note) => {
     response.json(note);
-  } else {
-    // if not respond with 404 not found
-
-    response.status(404).end();
-  }
+  });
 });
 
 app.delete("/api/notes/:id", (request, response) => {
