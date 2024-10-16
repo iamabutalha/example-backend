@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build:ui": "rm -rf dist && cd ../example-7 && npm run build && cp -r dist ../backend",
+    "build:ui": "rm -rf dist && cd ./example-7 && npm run build && cp -r dist ../backend",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push",
     "build": "vite build",
     "lint": "eslint .",
