@@ -39,11 +39,21 @@ let notes = [
     important: true,
   },
 ];
-
+app.use(express.json());
 app.use(express.static("dist"));
 
 const unkownPoint = (request, response) => {
   response.status(404).send({ error: "unkown point" });
+};
+
+const errorHandler = (error, request, response, next) => {
+  console.log(error.message);
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformated id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).json({ error: error.message });
+  }
+  next(error);
 };
 
 const requestLogger = (request, response, next) => {
@@ -54,32 +64,36 @@ const requestLogger = (request, response, next) => {
   next();
 };
 
-app.use(express.json());
 app.use(requestLogger);
-
+app.use(errorHandler);
 const generateId = () => {
   const maxId =
     notes.length > 0 ? Math.max(...notes.map((note) => Number(note.id))) : 0;
   return String(maxId + 1);
 };
 
-app.post("/api/notes", (request, response) => {
+app.post("/api/notes", (request, response, next) => {
   const body = request.body;
 
-  if (!body.content) {
+  if (body.content === "undefined") {
     return response.status(400).json({
       error: "content missing",
     });
+  } else {
+    const note = new Note({
+      content: body.content,
+      important: Boolean(body.important) || false,
+    });
+
+    note
+      .save()
+      .then((savedNotes) => {
+        response.json(savedNotes);
+      })
+      .catch((error) => {
+        next(error);
+      });
   }
-
-  const note = new Note({
-    content: body.content,
-    important: Boolean(body.important) || false,
-  });
-
-  note.save().then((savedNotes) => {
-    response.json(savedNotes);
-  });
 });
 
 app.get("/", (request, response) => {
@@ -92,17 +106,46 @@ app.get("/api/notes", (request, response) => {
   });
 });
 
-app.get("/api/notes/:id", (request, response) => {
-  Note.findById(request.params.id).then((note) => {
-    response.json(note);
-  });
+app.get("/api/notes/:id", (request, response, next) => {
+  Note.findById(request.params.id)
+    .then((note) => {
+      if (note) {
+        response.json(note);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => next(error));
+  // response.status(400).send({ error: "malformated id" });
 });
 
-app.delete("/api/notes/:id", (request, response) => {
+app.delete("/api/notes/:id", (request, response, next) => {
   const id = request.params.id;
 
-  const note = notes.filter((note) => id !== note.id);
-  response.status(204).end();
+  Note.findByIdAndDelete(id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => {
+      next(error);
+    });
+});
+
+app.put("/api/notes/:id", (request, response, next) => {
+  const { content, important } = request.body;
+
+  Note.findByIdAndUpdate(
+    request.params.id,
+    note,
+    { content, important },
+    { new: true, runValidators: true, context: "query" }
+  )
+    .then((updatedNotes) => {
+      response.json(updatedNotes);
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 
 app.use(unkownPoint);
