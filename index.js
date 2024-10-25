@@ -1,46 +1,50 @@
-import dotenv from "dotenv";
 import mongoose, { Mongoose } from "mongoose";
 import Note from "./models/notes.js";
 import express, { request, response } from "express";
+import * as middleware from "./middleware/middleware.js";
 import cors from "cors";
-const app = express();
-dotenv.config();
 
+import * as config from "./utils/config.js";
+import * as logger from "./utils/logger.js";
+import notesRouter from "./controllers/notes.js";
+import app from "./app.js";
 const url = process.env.MONGODB_URI;
 
-mongoose
-  .connect(url)
-  .then(() => {
-    console.log("connceted to mongoDb");
-  })
-  .catch((error) => {
-    console.log(error);
-  });
+// mongoose
+//   .connect(url)
+//   .then(() => {
+//     console.log("connceted to mongoDb");
+//   })
+//   .catch((error) => {
+//     console.log(error);
+//   });
 
-mongoose.set("strictQuery", false);
+// mongoose.set("strictQuery", false);
 
-app.use(cors());
+// app.use(cors());
 // const http = require("http");
 
-let notes = [
-  {
-    id: "1",
-    content: "HTML is easy",
-    important: true,
-  },
-  {
-    id: "2",
-    content: "Browser can execute only JavaScript",
-    important: false,
-  },
-  {
-    id: "3",
-    content: "GET and POST are the most important methods of HTTP protocol",
-    important: true,
-  },
-];
-app.use(express.json());
-app.use(express.static("dist"));
+// let notes = [
+//   {
+//     id: "1",
+//     content: "HTML is easy",
+//     important: true,
+//   },
+//   {
+//     id: "2",
+//     content: "Browser can execute only JavaScript",
+//     important: false,
+//   },
+//   {
+//     id: "3",
+//     content: "GET and POST are the most important methods of HTTP protocol",
+//     important: true,
+//   },
+// ];
+// app.use(express.json());
+// app.use(express.static("dist"));
+
+/*
 
 const unkownPoint = (request, response) => {
   response.status(404).send({ error: "unkown point" });
@@ -63,15 +67,19 @@ const requestLogger = (request, response, next) => {
   console.log("---");
   next();
 };
+*/
 
-app.use(requestLogger);
-app.use(errorHandler);
+// app.use(middleware.requestLogger);
+// app.use(middleware.errorHandler);
+// app.use("/api/notes", notesRouter);
+
 const generateId = () => {
   const maxId =
     notes.length > 0 ? Math.max(...notes.map((note) => Number(note.id))) : 0;
   return String(maxId + 1);
 };
 
+/*
 app.post("/api/notes", (request, response, next) => {
   const body = request.body;
 
@@ -136,23 +144,27 @@ app.put("/api/notes/:id", (request, response, next) => {
 
   Note.findByIdAndUpdate(
     request.params.id,
-    note,
     { content, important },
     { new: true, runValidators: true, context: "query" }
   )
     .then((updatedNotes) => {
-      response.json(updatedNotes);
+      if (updatedNotes) {
+        response.json(updatedNotes);
+      } else {
+        response.status(404).end();
+      }
     })
     .catch((error) => {
       next(error);
     });
 });
+*/
 
-app.use(unkownPoint);
+// app.use(middleware.unkownPoint);
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
-  console.log("Server is running on port ", PORT);
+app.listen(config.PORT, () => {
+  logger.info("Server is running on port ", config.PORT);
 });
 
 /*
